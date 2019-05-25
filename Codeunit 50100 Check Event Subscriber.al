@@ -5,7 +5,7 @@ Codeunit 50100 "Check Event Subscriber"
     begin
     end;
 
-    [EventSubscriber(Objecttype::Table, 6188774, 'OnAfterInsertEvent', '', false, false)]
+    [EventSubscriber(Objecttype::Table, 6188774, 'OnAfterModifyEvent', '', false, false)]
     local procedure PopulateMICRString(var Rec: Record "ForNAV Check Model"; RunTrigger: Boolean)
     begin
         //* Use This Event Subscriber if you want to populate the MICR String
@@ -15,11 +15,12 @@ Codeunit 50100 "Check Event Subscriber"
 
         with Rec do begin
             "Micr Line" := AmountSymbol;
-            "Micr Line" += GetCentsFromAmount(Rec.Amount);
-            "Micr Line" += GetAmountPrefixedWithZeroes(Rec.Amount);
+            "Micr Line" += GetCentsFromAmount(GetAmountFromCheckNo(Rec));
+            "Micr Line" += GetAmountPrefixedWithZeroes(GetAmountFromCheckNo(Rec));
             "Micr Line" += AmountSymbol;
             "Micr Line" += GetBankRoutingNumber;
             "Micr Line" += GetBankAccountNumber;
+            "Amount Paid" := GetAmountFromCheckNo(Rec);
         end;
 
         Rec."Micr Line" += ''
@@ -30,8 +31,8 @@ Codeunit 50100 "Check Event Subscriber"
     begin
         //* In this event you can manipulate the MICR String. If you do not want that but
         //* just use the value you have generated in the OnAfterInsert then leave the code here as-is.
-
         Value := Value;
+        //        Message(Value);
         Handled := true;
     end;
 
@@ -40,7 +41,7 @@ Codeunit 50100 "Check Event Subscriber"
         // Only Cents
         Value := Value - ROUND(Value, 1, '<');
 
-        Cents := CopyStr(Format(Value), 1, 2);
+        Cents := CopyStr(Format(Value * 100), 1, 2);
         while StrLen(Cents) < 2 do
             Cents := '0' + Cents;
     end;
@@ -55,10 +56,22 @@ Codeunit 50100 "Check Event Subscriber"
 
     local procedure GetBankRoutingNumber(): Code[10]
     begin
+        exit('555');
     end;
 
     local procedure GetBankAccountNumber(): Code[20]
     begin
+        exit('8473');
+    end;
+
+    local procedure GetAmountFromCheckNo(var Rec: Record "ForNAV Check Model"): Decimal
+    var
+        GenJnlLn: Record "Gen. Journal Line";
+    begin
+        GenJnlLn.SetRange("Document No.", rec."Check No.");
+        GenJnlLn.SetRange("Account Type", GenJnlLn."Account Type"::Vendor);
+        GenJnlLn.CalcSums(Amount);
+        exit(GenJnlLn.Amount);
     end;
 
     local procedure AmountSymbol(): Code[1]
