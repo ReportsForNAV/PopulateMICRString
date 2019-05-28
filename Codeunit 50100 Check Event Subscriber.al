@@ -18,7 +18,7 @@ Codeunit 50100 "Check Event Subscriber"
             "Micr Line" += GetCentsFromAmount(GetAmountFromCheckNo(Rec));
             "Micr Line" += GetAmountPrefixedWithZeroes(GetAmountFromCheckNo(Rec));
             "Micr Line" += AmountSymbol;
-            "Micr Line" += GetBankRoutingNumber;
+            "Micr Line" += GetBankRoutingNumber(Rec);
             "Micr Line" += GetBankAccountNumber;
             "Amount Paid" := GetAmountFromCheckNo(Rec);
         end;
@@ -54,8 +54,13 @@ Codeunit 50100 "Check Event Subscriber"
             Amount := '0' + Amount;
     end;
 
-    local procedure GetBankRoutingNumber(): Code[10]
+    local procedure GetBankRoutingNumber(var Rec: Record "ForNAV Check Model"): Code[10]
+    var
+        BankAccount: Record "Bank Account";
     begin
+        BankAccount.SetRange(Name, Rec."Bank Name");
+        BankAccount.FindFirst();
+        Rec.BankAccountNo := BankAccount."Bank Account No.";
         exit('555');
     end;
 
